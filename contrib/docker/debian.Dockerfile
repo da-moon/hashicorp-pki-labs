@@ -66,8 +66,6 @@ RUN export DEBIAN_FRONTEND=noninteractive; \
 
 WORKDIR /home/code
 USER code
-RUN curl -fsSl https://raw.githubusercontent.com/da-moon/provisioner-scripts/master/bash/installer/docker | bash
-RUN curl -fsSl https://raw.githubusercontent.com/da-moon/provisioner-scripts/master/bash/installer/kube-util | bash
 RUN echo 'alias tf="terraform"' | tee -a ~/.bash_aliases && \
   echo 'alias tfi="terraform init"' | tee -a ~/.bash_aliases && \
   echo 'alias tfa="terraform apply -auto-approve"' | tee -a ~/.bash_aliases && \
