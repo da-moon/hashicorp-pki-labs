@@ -1,0 +1,35 @@
+---
+- block :
+  - find:
+      paths: ["{{ vault_config_directory_path }}"]
+      file_type: file
+      use_regex: yes
+      patterns: ['^.*\.hcl$']
+    register: "hcl_config_filelist"
+    run_once: true
+  - set_fact:
+      hcl_config_filelist: >
+        {{
+          hcl_config_filelist.files |
+          map(attribute='path')  |
+          list
+        }}
+  - name: "uploading vault systemd service file"
+    template:
+      src: "service/vault.service.j2"
+      dest: "{{ systemd_unit_directory }}/vault.service"
+      force: yes
+      decrypt: yes
+  - block:
+    - name: "reloading systemctl"
+      command: "systemctl daemon-reload"
+    - name: "making sure vault service runs at startup"
+      command: "systemctl enable --now vault"
+    - name: "restarting vault service"
+      command: "systemctl restart vault"
+      ignore_errors: true
+    - pause:
+        seconds: 30
+        prompt: waiting for vault server to start and become available
+    - name: "make sure vault service is really running"
+      command: "systemctl is-active vault"

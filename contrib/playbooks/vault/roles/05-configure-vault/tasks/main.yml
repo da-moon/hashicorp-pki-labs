@@ -1,0 +1,19 @@
+---
+
+- block:
+  - import_tasks:  "00-asserts.yml"
+  - import_tasks:  "01-initialize.yml"
+    become: yes
+  - import_tasks:  "02-ufw.yml"
+  - import_tasks:  "03-certificates.yml"
+    when :
+      - not vault_tls_disable
+    become: yes
+  - import_tasks:  "04-config-files.yml"
+    become: yes
+  - import_tasks:  "05-policy-files.yml"
+    become: yes
+  - import_tasks:  "06-systemd-units.yml"
+    become: yes
+  - import_tasks:  "07-vault-init.yml"
+    run_once: true

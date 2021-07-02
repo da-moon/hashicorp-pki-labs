@@ -1,0 +1,31 @@
+---
+
+- name: "checking current status of vault server before joining"
+  shell: >
+    vault status -address=http{% if not vault_tls_disable %}s{% endif %}://127.0.0.1:{{ vault_api_port }}
+    {% if not vault_tls_disable %} \
+      -ca-cert='{{ vault_tls_path }}/ca.pem' \
+      -client-cert='{{ vault_tls_path }}/server.pem' \
+      -client-key='{{ vault_tls_path }}/server-key.pem' \
+    {% endif %}
+    -format=json
+  ignore_errors: true
+  register: "vault_status"
+- set_fact:
+    vault_status: "{{ vault_status.stdout | from_json }}"
+- debug: 'msg=vault_status'
+- name: "trying to join other nodes in vault cluster"
+  command: >
+    vault operator raft join
+    -address=http{% if not vault_tls_disable %}s{% endif %}://127.0.0.1:{{ vault_api_port }}
+    {% if not vault_tls_disable %} \
+      -ca-cert='{{ vault_tls_path }}/ca.pem' \
+      -client-cert='{{ vault_tls_path }}/server.pem' \
+      -client-key='{{ vault_tls_path }}/server-key.pem' \
+    {% endif %} http{% if not vault_tls_disable %}
+    s{% endif %}{{ item }}:{{vault_api_port}}
+  loop: "{{ retry_join_ips }}"
+  ignore_errors: true
+  when:
+    - vault_status.initialized
+    - vault_status.sealed

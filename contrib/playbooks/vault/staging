@@ -1,0 +1,6 @@
+[lxc]
+vault-1
+vault-2
+vault-3
+[staging:children]
+lxc

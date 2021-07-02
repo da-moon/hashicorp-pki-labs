@@ -1,0 +1,20 @@
+---
+- block:
+  - name: "uploading vault server certificates "
+    copy:
+      src: "{{ certificate_root_dir }}/vault/{{ inventory_hostname }}/{{ item }}.enc"
+      dest: "{{ vault_tls_path }}/{{ item }}"
+      force: yes
+      decrypt: yes
+    loop: ['ca.pem','server.pem','server-key.pem']
+  - name: "uploading vault retry-join client certificate"
+    copy:
+      src: "{{ certificate_root_dir }}/vault/{{ nested_loop.0 }}/{{ nested_loop.1 }}.enc"
+      dest: "{{ vault_config_directory_path }}/certificates/{{ nested_loop.0 }}/{{ nested_loop.1 }}"
+      force: yes
+      decrypt: yes
+    with_nested:
+      - "{{ retry_join_ips }}"
+      - ["ca.pem" , "client.pem", "client-key.pem"]
+    loop_control:
+      loop_var: nested_loop

@@ -1,0 +1,15 @@
+disable_mlock = true
+storage "raft" {
+  path = "{{ vault_storage_path }}"
+  node_id     = "{{ ansible_hostname }}|{{ private_ip }}"
+{% for item in retry_join_ips %}
+  retry_join {
+    leader_api_addr = "http{% if not vault_tls_disable %}s{% endif %}://{{ item }}:{{ vault_api_port }}"
+{% if not vault_tls_disable %}
+    leader_ca_cert_file = "{{ vault_config_directory_path }}/certificates/{{ item }}/ca.pem"
+    leader_client_cert_file = "{{ vault_config_directory_path }}/certificates/{{ item }}/client.pem"
+    leader_client_key_file = "{{ vault_config_directory_path }}/certificates/{{ item }}/client-key.pem"
+{% endif %}
+  }
+{% endfor %}
+}

@@ -1,0 +1,81 @@
+---
+- block :
+  - name: "make sure userpass authentication method is enabled"
+    shell: |
+      vault auth enable -address=http{% if not vault_tls_disable %}s{% endif %}://127.0.0.1:{{ vault_api_port }} \
+      {% if not vault_tls_disable %} -ca-cert='{{ vault_tls_path }}/ca.pem' \
+        -client-cert='{{ vault_tls_path }}/server.pem' \
+        -client-key='{{ vault_tls_path }}/server-key.pem' {% endif %} userpass
+    ignore_errors: true
+    run_once: true
+  - name: "ensuring vault global environment variables file exists"
+    file:
+        path: "{{ vault_profile_path }}"
+        owner: "root"
+        group: "root"
+        mode: '0755'
+        state: touch
+  - name: "set vault environment variables"
+    blockinfile:
+      path: "{{ vault_profile_path }}"
+      block: |
+        export VAULT_TOKEN='{{ vault_root_token }}'
+        export VAULT_ADDR='http{% if not vault_tls_disable %}s{% endif %}://127.0.0.1:{{ vault_api_port }}'
+        {% if not vault_tls_disable %}export VAULT_CACERT='{{ vault_tls_path }}/ca.pem'
+        export VAULT_CLIENT_KEY='{{ vault_tls_path }}/server-key.pem'
+        export VAULT_CLIENT_CERT='{{ vault_tls_path }}/server.pem'
+        {% endif %}
+        vault login '{{ vault_root_token }}'
+  - name: "ensuring vault init script file exists"
+    file:
+      path: "/opt/vault/init.sh"
+      owner: "vault"
+      group: "vault"
+      mode: '0755'
+      state: touch
+  - name: "systemd config to unseal vault after initialization every time the server resets"
+    blockinfile:
+      path : "/opt/vault/init.sh"
+      block: |
+        #!/usr/bin/env bash
+        {% for item in retry_join_ips %}/usr/local/bin/vault operator raft join \
+          -address=http{% if not vault_tls_disable %}s{% endif %}://127.0.0.1:{{ vault_api_port }} {% if not vault_tls_disable %} \
+          -ca-cert='{{ vault_tls_path }}/ca.pem' \
+          -client-cert='{{ vault_tls_path }}/server.pem' \
+          -client-key='{{ vault_tls_path }}/server-key.pem' \
+        {% endif %}   http{% if not vault_tls_disable %}s{% endif %}://{{ item }}:{{vault_api_port}}
+        /usr/local/bin/vault operator unseal \
+          -address=http{% if not vault_tls_disable %}s{% endif %}://127.0.0.1:{{ vault_api_port }}{% if not vault_tls_disable %} \
+          -ca-cert='{{ vault_tls_path }}/ca.pem' \
+          -client-cert='{{ vault_tls_path }}/server.pem' \
+          -client-key='{{ vault_tls_path }}/server-key.pem' \
+        {% endif %}   '{{ vault_unseal_keys_b64_dec[0] }}'
+        /usr/local/bin/vault operator unseal \
+          -address=http{% if not vault_tls_disable %}s{% endif %}://127.0.0.1:{{ vault_api_port }}{% if not vault_tls_disable %} \
+          -ca-cert='{{ vault_tls_path }}/ca.pem' \
+          -client-cert='{{ vault_tls_path }}/server.pem' \
+          -client-key='{{ vault_tls_path }}/server-key.pem' \
+        {% endif %}   '{{ vault_unseal_keys_b64_dec[1] }}'
+        /usr/local/bin/vault operator unseal \
+          -address=http{% if not vault_tls_disable %}s{% endif %}://127.0.0.1:{{ vault_api_port }}{% if not vault_tls_disable %} \
+          -ca-cert='{{ vault_tls_path }}/ca.pem' \
+          -client-cert='{{ vault_tls_path }}/server.pem' \
+          -client-key='{{ vault_tls_path }}/server-key.pem' \
+        {% endif %}   '{{ vault_unseal_keys_b64_dec[2] }}'
+        {% endfor %}
+  - name: "systemd config to unseal vault after initialization every time the server resets"
+    blockinfile:
+      path : "{{ systemd_unit_directory }}/vault.service"
+      block: |
+        ExecStartPost=bash -c /opt/vault/init.sh
+  - name: "reloading systemctl"
+    command: "systemctl daemon-reload"
+  - name: "restarting vault service"
+    command: "systemctl restart vault"
+    ignore_errors: true
+  - pause:
+      seconds: 30
+      prompt: waiting for vault server to start and become available
+  - name: "make sure vault service is really running"
+    command: "systemctl is-active vault"
+  become: yes

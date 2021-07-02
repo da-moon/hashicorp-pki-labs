@@ -1,0 +1,8 @@
+.vagrant
+tmp
+.stignore
+*.cast
+.terraform*
+*.tfstate
+*.tfstate.*
+*.log

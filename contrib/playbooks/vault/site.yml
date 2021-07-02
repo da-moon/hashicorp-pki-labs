@@ -1,0 +1,53 @@
+---
+
+- hosts: all
+  gather_facts: no
+  pre_tasks:
+  - name: "Asserting variables globally used variables"
+    assert:
+      that:
+        - architecture_map is defined
+        - systemd_unit_directory is defined
+  - block :
+    - name: check python executable is present
+      shell: "which python"
+      register: result
+      ignore_errors: true
+    - name: 'install python'
+      raw: 'apt-get install -yqq python'
+      when: result.rc != 0
+    - name: check python-apt is installed
+      shell: "dpkg -l | grep python-apt"
+      register: result
+      ignore_errors: true
+    - name: 'install python-apt'
+      raw: 'apt-get install -yqq python-apt'
+      when: result.rc != 0
+  become: yes
+- name: Ansible controller local dependency installer
+  hosts: all
+  gather_facts: yes
+  roles:
+    - { role: 01-ansible-controller, tags: ["01-ansible-controller"]}
+    - { role: 02-install-prerequisites, tags: ["02-install-prerequisites"]}
+- name: Hashicorp Vault Cluster setup playbooks
+  hosts: staging
+  gather_facts: yes
+  vars_prompt:
+  - name: vault_password_file
+    prompt: Where is ansible-vault password file?
+    private: no
+  vars:
+    vault_tls_disable : false
+    override_certificate: true
+    certificate_root_dir: "{{ inventory_dir+'/host_vars/certificates'}}"
+  roles:
+    - { role: 03-install-vault, tags: ["03-install-vault"]}
+    - { role: 04-vault-certificates, tags: ["04-vault-certificates"] }
+    - role: 05-configure-vault
+      tags:
+        - "05-configure-vault"
+      vars:
+        force_bootstrap: true
+        log_level : "{{ lookup('env','VAULT_LOG_LEVEL') | default('DEBUG', true) }}"
+    - { role: 06-unseal-vault, tags: ["06-unseal-vault"]}

@@ -1,0 +1,38 @@
+---
+
+- name: Assert variables
+  assert:
+    that:
+      - vault_releases_base_url is defined
+      - install_vault is defined
+- shell: |
+    curl -sL {{ vault_releases_base_url }}/index.json |
+    jq -r '.versions[].version' |
+    sort -t. -k 1,1n -k 2,2n -k 3,3n -k 4,4n |
+    grep -E -v 'ent|rc|beta' |
+    tail -1
+  register: "latest_version"
+- name: check vault executable is present
+  shell: "which vault"
+  register: result
+  ignore_errors: true
+- block:
+  - name: "checking if latest vault release is higher than installed version"
+    shell: "vault --version"
+    register: installed_version
+  - set_fact:
+      install_vault: "{{ installed_version.stdout != 'Vault v' + latest_version.stdout }}"
+  when:
+    - result.rc == 0
+- block:
+  - name: 'downloading vault v{{ latest_version.stdout }}'
+    unarchive:
+      src: "https://releases.hashicorp.com/vault/{{ latest_version.stdout }}/vault_{{ latest_version.stdout }}_linux_{{ architecture_map[ansible_architecture] }}.zip"
+      dest: "/usr/local/bin/"
+      mode: 0755
+      owner: "root"
+      group: "root"
+      remote_src: yes
+  become: yes
+  when:
+    - install_vault

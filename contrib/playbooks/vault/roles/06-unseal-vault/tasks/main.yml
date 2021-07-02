@@ -1,0 +1,12 @@
+---
+- include_vars:
+    file : "{{ play_encrypted_vars_dir+'/vault_unseal_keys_b64.yml' }}"
+- include_vars:
+    file : "{{ play_encrypted_vars_dir+'/vault_root_token.yml' }}"
+- set_fact:
+    vault_unseal_keys_b64_dec: "{{ vault_unseal_keys_b64 }}"
+- block:
+  - import_tasks:  "00-asserts.yml"
+  - import_tasks:  "01-join.yml"
+  - import_tasks:  "02-unseal.yml"
+  - import_tasks:  "03-env-setup.yml"

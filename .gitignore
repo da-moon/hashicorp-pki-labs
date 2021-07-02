@@ -1,0 +1,6 @@
+.vagrant
+tmp
+.stignore
+**/.terraform*
+*.tfstate
+*.tfstate.*

@@ -1,0 +1,4 @@
+ui           = "{{ vault_ui }}"
+log_level    = "{{ log_level }}"
+api_addr     = "http{% if not vault_tls_disable %}s{% endif %}://{{ inventory_hostname }}:{{ vault_api_port }}"
+cluster_addr = "http{% if not vault_tls_disable %}s{% endif %}://{{ private_ip }}:{{ vault_cluster_port }}"

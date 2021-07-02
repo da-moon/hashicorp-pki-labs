@@ -1,0 +1,11 @@
+listener "tcp" {
+  address                   = "0.0.0.0:{{ vault_api_port }}"
+  cluster_address           = "0.0.0.0:{{ vault_cluster_port}}"
+  {% if vault_tls_disable %}tls_disable               = true
+  {% else %}tls_cert_file             = "{{ vault_tls_path }}/server.pem"
+  tls_key_file              = "{{ vault_tls_path }}/server-key.pem"
+  tls_client_ca_file        = "{{ vault_tls_path }}/ca.pem"
+  tls_disable_client_certs  = false
+  tls_disable               = false
+{% endif %}
+}

@@ -1,0 +1,74 @@
+---
+
+- name: "checking status of vault server"
+  shell: >
+    vault status -address=http{% if not vault_tls_disable %}s{% endif %}://127.0.0.1:{{ vault_api_port }}
+    {% if not vault_tls_disable %} \
+      -ca-cert='{{ vault_tls_path }}/ca.pem' \
+      -client-cert='{{ vault_tls_path }}/server.pem' \
+      -client-key='{{ vault_tls_path }}/server-key.pem' \
+    {% endif %}
+    -format=json
+  ignore_errors: true
+  register: "vault_status"
+- set_fact:
+    vault_status: "{{ vault_status.stdout | from_json }}"
+- block:
+  - name: "initializing single node in vault cluster"
+    shell: >
+      vault operator init
+      -address=http{% if not vault_tls_disable %}s{% endif %}://127.0.0.1:{{ vault_api_port }}
+      {% if not vault_tls_disable %} \
+        -ca-cert='{{ vault_tls_path }}/ca.pem' \
+        -client-cert='{{ vault_tls_path }}/server.pem' \
+        -client-key='{{ vault_tls_path }}/server-key.pem' \
+      {% endif %} -format=json
+    register: "vault_init_response"
+  - set_fact:
+      vault_init_response: "{{ vault_init_response.stdout | from_json }}"
+  - set_fact:
+      vault_root_token: "{{ vault_init_response.root_token }}"
+      vault_unseal_keys_b64: "{{ vault_init_response.unseal_keys_b64 }}"
+  - debug: "var=vault_root_token"
+  - debug: "var=vault_unseal_keys_b64"
+  - name: "unsealing initialized vault node"
+    command: >
+      vault operator unseal
+      -address=http{% if not vault_tls_disable %}s{% endif %}://127.0.0.1:{{ vault_api_port }}
+      {% if not vault_tls_disable %} \
+        -ca-cert='{{ vault_tls_path }}/ca.pem' \
+        -client-cert='{{ vault_tls_path }}/server.pem' \
+        -client-key='{{ vault_tls_path }}/server-key.pem' \
+      {% endif %} {{ item }}
+    loop: "{{ vault_unseal_keys_b64 }}"
+  - block:
+    - name: "ensuring directory to store encrypted variables exists"
+      file:
+        path: "{{ play_encrypted_vars_dir }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        mode: '0755'
+    - name: "ensuring files to store encrypted variables are created"
+      file:
+        path: "{{ play_encrypted_vars_dir }}/{{ item }}.yml"
+        owner: "{{ ansible_user }}"
+        mode: '0755'
+        state: touch
+      loop:
+        - vault_unseal_keys_b64
+        - vault_root_token
+    - name: "encrypting vault root token with ansible-vault"
+      shell: "echo -n \"{{ vault_root_token }}\" | ansible-vault encrypt_string --vault-password-file={{ vault_password_file }} --stdin-name 'vault_root_token'"
+      register: "encrypted_vault_root_token"
+    - name: "encrypting vault unseal keys with ansible-vault"
+      shell: "echo -n \"{{ vault_unseal_keys_b64 }}\" | ansible-vault encrypt_string --vault-password-file={{ vault_password_file }} --stdin-name 'vault_unseal_keys_b64'"
+      register: "encrypted_vault_unseal_keys_b64"
+    - blockinfile:
+        path: "{{ play_encrypted_vars_dir }}/vault_root_token.yml"
+        block: "{{ encrypted_vault_root_token.stdout_lines | join('\n') }}"
+    - blockinfile:
+        path: "{{ play_encrypted_vars_dir }}/vault_unseal_keys_b64.yml"
+        block: "{{ encrypted_vault_unseal_keys_b64.stdout_lines | join('\n') }}"
+    delegate_to: localhost
+  when:
+    - not vault_status.initialized

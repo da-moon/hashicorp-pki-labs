@@ -1,0 +1,4 @@
+---
+
+vault_tls_path : "{{ lookup('env','VAULT_TLS_PATH') | default('/opt/vault/tls', true) }}"
+vault_api_port : "{{ lookup('env','VAULT_API_PORT') | default('8200', true) }}"

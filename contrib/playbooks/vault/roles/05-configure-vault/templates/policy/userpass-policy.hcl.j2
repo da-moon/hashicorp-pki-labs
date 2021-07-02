@@ -1,0 +1,9 @@
+path "auth/userpass/users/*" {
+  capabilities = ["read", "update", "create"]
+}
+path "auth/userpass/login/*" {
+  capabilities = ["create"]
+}
+path "auth/token/lookup-accessor" {
+  capabilities = ["update"]
+}

@@ -1,0 +1,28 @@
+---
+- block :
+  - name: "checking current status of vault server"
+    shell: >
+      vault status -address=http{% if not vault_tls_disable %}s{% endif %}://127.0.0.1:{{ vault_api_port }} {% if not vault_tls_disable %} \
+        -ca-cert='{{ vault_tls_path }}/ca.pem' \
+        -client-cert='{{ vault_tls_path }}/server.pem' \
+        -client-key='{{ vault_tls_path }}/server-key.pem' \
+      {% endif %}
+      -format=json
+    ignore_errors: true
+    register: "vault_status"
+  - set_fact:
+      vault_status: "{{ vault_status.stdout | from_json }}"
+  - name: "unsealing vault after initialization"
+    command: >
+      vault operator unseal
+      -address=http{% if not vault_tls_disable %}s{% endif %}://127.0.0.1:{{ vault_api_port }}
+      {% if not vault_tls_disable %} \
+        -ca-cert='{{ vault_tls_path }}/ca.pem' \
+        -client-cert='{{ vault_tls_path }}/server.pem' \
+        -client-key='{{ vault_tls_path }}/server-key.pem' \
+      {% endif %} {{ item }}
+    loop: "{{ vault_unseal_keys_b64 }}"
+    when:
+      - vault_status.initialized
+      - vault_status.sealed
+  - debug: "var=vault_status"

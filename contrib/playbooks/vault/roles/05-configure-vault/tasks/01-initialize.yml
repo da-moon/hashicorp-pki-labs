@@ -1,0 +1,68 @@
+---
+- block :
+  - name: "cleaning up past certificates by removing '{{ vault_tls_path }}' Directory"
+    file:
+      path: "{{ vault_tls_path }}"
+      state: absent
+  - name: "cleaning up past configuration by removing '{{ vault_config_directory_path }}' Directory"
+    file:
+      path: "{{ vault_config_directory_path }}"
+      state: absent
+
+  - name: "cleaning up all vault related directories to have a clean slate"
+    file:
+      path: "{{ item }}"
+      state: absent
+    with_items:
+        - '{{ systemd_unit_directory }}'
+        - '{{ vault_storage_path }}'
+        - '{{ vault_config_directory_path }}'
+        - '{{ play_encrypted_vars_dir }}/vault_root_token.yml'
+        - '{{ play_encrypted_vars_dir }}/vault_unseal_keys_b64.yml'
+    when:
+      - force_bootstrap is defined
+      - force_bootstrap
+  - name: "making sure vault config directories are present on remote"
+    file:
+      path: "{{ item }}"
+      state: directory
+      group : "root"
+      owner: "root"
+      mode: '0755'
+    with_items:
+        - '{{ vault_tls_path }}'
+        - '{{ vault_config_directory_path }}'
+        - '{{ systemd_unit_directory }}'
+
+  - name: "making sure certificate directories for retry_join nodes are present on server"
+    file:
+      path: "{{ vault_config_directory_path }}/certificates/{{ item }}"
+      state: directory
+      group : "root"
+      owner: "root"
+      mode: '0755'
+    with_items: "{{ retry_join_ips }}"
+    when:
+      - vault_tls_disable is defined
+      - not vault_tls_disable
+  - name: "Ensure group 'vault' exists"
+    group:
+      name: vault
+      state: present
+  - name: "Ensure system user 'vault' exists"
+    user:
+      state: present
+      shell: /bin/bash
+      system: yes
+      name: "vault"
+      group: "vault"
+  - name: "making sure vault data directories are present on remote"
+    file:
+      path: "{{ item }}"
+      state: directory
+      group : "vault"
+      owner: "vault"
+      mode: '0755'
+    with_items:
+        - '{{ vault_storage_path }}'
+        - '{{ vault_config_directory_path }}'

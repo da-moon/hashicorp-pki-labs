@@ -1,0 +1,19 @@
+---
+
+- name: Assert variables
+  assert:
+    that:
+      - vault_api_port is defined
+      - vault_root_token is defined
+      - vault_unseal_keys_b64 is defined
+      - vault_tls_disable is defined
+      - private_ip is defined
+      - retry_join_ips is defined
+      - play_encrypted_vars_dir is defined
+      - vault_unseal_keys_b64_dec is defined
+- name: Assert conditional variables
+  assert:
+    that:
+      - vault_tls_path is defined
+  when:
+    - not vault_tls_disable

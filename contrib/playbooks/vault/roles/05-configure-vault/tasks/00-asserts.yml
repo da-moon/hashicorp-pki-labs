@@ -1,0 +1,24 @@
+---
+
+- name: Assert variables
+  assert:
+    that:
+      - vault_api_port is defined
+      - vault_cluster_port is defined
+      - log_level is defined
+      - vault_ui is defined
+      - vault_storage_path is defined
+      - vault_tls_disable is defined
+      - systemd_unit_directory is defined
+      - vault_config_directory_path is defined
+      - private_ip is defined
+      - retry_join_ips is defined
+      - play_encrypted_vars_dir is defined
+      - vault_profile_path is defined
+
+- name: Assert conditional variables
+  assert:
+    that:
+      - vault_tls_path is defined
+  when:
+    - not vault_tls_disable
