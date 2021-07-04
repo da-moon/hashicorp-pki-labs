@@ -132,13 +132,6 @@ EOF
 )
 echo >&2 "$message"
 
-message="ensuring minikube has started"
-command="minikube start || true"
-section --message "$message" --command "$command"
-
-message="ensuring minikube ingress addon has been enables"
-command="timeout 120 minikube addons enable ingress || true"
-section --message "$message" --command "$command"
 
 export TF_VAR_kubernetes_host="https://$(minikube ip):8443"
 message="minikube host ip address is ${green}${TF_VAR_kubernetes_host}${reset}"
@@ -154,10 +147,6 @@ echo >&2 "$message"
 
 message="making sure all terraform modules are initialized"
 command="terraform init"
-section --message "$message" --command "$command"
-
-message="ensuring a clean slate on vault through ${red}destroying${reset} any changes this module made."
-command="terraform destroy -auto-approve || true"
 section --message "$message" --command "$command"
 
 message="using terraform to ${green}create${reset} ${bold}pki${reset} module"
