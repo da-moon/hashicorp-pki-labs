@@ -145,15 +145,9 @@ message="making sure all terraform modules are initialized"
 command="terraform init"
 section --message "$message" --command "$command"
 
-message="ensuring a clean slate on vault through ${red}destroying${reset} any existing pki engine that was created by this module"
-command="terraform destroy -auto-approve || true"
-section --message "$message" --command "$command"
-
 message="using terraform to ${green}create${reset} ${bold}pki secret engine${reset}"
 command="terraform apply -auto-approve"
 section --message "$message" --command "$command"
-
-
 
 rand_common_name="$[$RANDOM % ${#passing_common_names[@]}]"
 acceptable_common_name="${passing_common_names[$rand_common_name]}"
