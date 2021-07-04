@@ -1,25 +1,26 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 synced_folder  = ENV[     'SYNCED_FOLDER'      ]  || "/home/vagrant/#{File.basename(Dir.pwd)}"
-memory         = ENV[           'MEMORY'       ]  || 4096
-cpus           = ENV[           'CPUS'         ]  || 4
+memory         = ENV[           'MEMORY'       ]  || 8192
+cpus           = ENV[           'CPUS'         ]  || 8
 vm_name        = ENV[           'VM_NAME'      ]  || File.basename(Dir.pwd)
 forwarded_ports= []
 provisioners   = [
   "node",
   "python",
   "ansible",
-  "spacevim",
   "ripgrep",
   "docker",
   "lxd",
+  "starship",
   "rust-core-utils",
+  "rust-toolchain",
   "kube-util",
+  "spacevim",
 ]
 utility_scripts= [
  "disable-ssh-password-login",
  "lxd-debian",
- "ngrok-init"
 ]
 INSTALLER_SCRIPTS_BASE      = "https://raw.githubusercontent.com/da-moon/provisioner-scripts/master/bash/installer"
 UTIL_SCRIPTS_BASE           = "https://raw.githubusercontent.com/da-moon/provisioner-scripts/master/bash/util"
@@ -106,21 +107,34 @@ Vagrant.configure("2") do |config|
     args:[
       "--skip","otto",
       "--skip", "serf",
-      "--skip", "terraform",
       "--skip", "boundary",
       "--skip", "waypoint",
     ]
   config.vm.provision "shell",
-    privileged:false,
-    name:"tfenv",
-    path:"#{INSTALLER_SCRIPTS_BASE}/tfenv"
-  config.vm.provision "shell",
       privileged:false,
       name:"extra-tools",
       inline: <<-SCRIPT
-      sudo python3 -m pip install asciinema yq
-      sudo apt-get install -y upx
-      sudo snap install diagon
+			set -xeu
+      sudo apt-get install -y upx cmake libssl-dev fzf ;
+      for i in {1..5}; do wget -O \
+        /tmp/vsls-reqs \
+        https://aka.ms/vsls-linux-prereq-script && break || sleep 15; done ;
+      sudo bash /tmp/vsls-reqs ;
+      rm -f /tmp/vsls-req ;
+      sudo snap install diagon ;
+      sudo python3 -m pip install asciinema yq pre-commit
+      sudo yarn global add --prefix /usr/local \
+        @commitlint/cli \
+        @commitlint/config-conventional \
+        remark \
+        remark-cli \
+        remark-stringify \
+        remark-frontmatter \
+        wcwidth \
+        bash-language-server \
+        prettier ;
+      rustup default stable
+      cargo install -j`nproc` convco ;
     SCRIPT
   config.trigger.after [:provision] do |t|
     t.info = "cleaning up after provisioning"
