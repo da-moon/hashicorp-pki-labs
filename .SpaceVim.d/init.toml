@@ -51,6 +51,7 @@
   name = "lang#toml"
 [[layers]]
   name = 'lang#json'
+  format_on_save = false
 [[layers]]
   name = 'lang#yaml'
 [[layers]]
@@ -58,8 +59,11 @@
 [[layers]]
   name = "lsp"
   filetypes = [
+    "go",
     "sh"
   ]
+	[layers.override_cmd]
+		go = ['gopls', '-mode', 'stdio']
 [options]
   filesearching_tools = ['fd', 'fd -H']
   filemanager = "nerdtree"
