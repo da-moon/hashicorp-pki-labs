@@ -8,17 +8,13 @@ RUN \
   yes | add-apt-repository ppa:neovim-ppa/unstable \
   && apt-get update \
   && curl https://i.jpillora.com/chisel! | bash \
-  && curl -fsSL https://starship.rs/install.sh | sudo bash -s -- --force --verbose \
-  && echo 'eval "$(starship init bash)"' | tee -a ~/.bashrc > /dev/null \
-  && echo 'export EDITOR="nvim"' | tee -a ~/.bashrc > /dev/null \
-  && echo 'export VISUAL="nvim"' | tee -a ~/.bashrc > /dev/null
-
+  && curl -fsSL https://starship.rs/install.sh | sudo bash -s -- --force 
 ARG APT_PACKAGES="\
   dropbear \
   cmake \
   xfonts-utils \
   neovim \
-  jq \
+  jq \ 
   curl \
   libssl-dev \
   fonts-symbola \
@@ -31,7 +27,7 @@ ARG PYTHON_PACKAGES="\
   yapf \
   autoflake \
   isort \
-  coverage \
+  coverage \ 
   "
 ENV PIP_USER="false"
 RUN \
@@ -54,39 +50,47 @@ RUN \
   -not -group "$(id -g gitpod)" \
   -not -user "$(id -u gitpod)" \
   -print \
-  | xargs -I {} -P `nproc` --no-run-if-empty \
+  | xargs -I {} -P `nproc` --no-run-if-empty \ 
   chown --no-dereference "$(id -u gitpod):$(id -g gitpod)" {} ;
 USER gitpod
-WORKDIR /workspace
-
-RUN \
-  ( \
-    echo "alias dip='docker inspect --format \"{{ .NetworkSettings.Networks.nat.IPAddress }}\"'" ;
-    echo "alias drm='docker container rm -f \"$(docker container ls -aq)\"'" ;
-  ) | tee -a ~/.profile > /dev/null \
-  && sed -i \
-  -e '1s/^/export PIP_USER="false"\n/' \
-  -e '1s/^/export VISUAL="nvim"\n/' \
-  -e '1s/^/export EDITOR="nvim"\n/' \
-  -e '1s/^/eval "$(starship init bash)"\n/' \
-  -e '1s/^/[ -d ~\/go ] \&\& export PATH="${PATH}:${GOROOT}\/bin:${GOPATH}\/bin" \n/' \
-  -e '1s/^/[ -d ~\/go ] \&\&  export GOPATH=~\/go-packages ; \n/' \
-  -e '1s/^/[ -d ~\/go ] \&\&  export GOROOT=~\/go ; \n/' \
-  -e '1s/^/[ -d ~\/.pyenv ] \&\& export PATH="${PATH}:~\/.pyenv\/bin:~\/.pyenv\/shims" \n/' \
-  -e '1s/^/export PATH="${PATH}:\/usr\/local\/bin"\n/' \
-  ~/.profile
-
 ENV EDITOR="nvim"
 ENV VISUAL="nvim"
+ENV PIP_USER="nvim"
+ENV HOME="/home/${USER}"
+RUN \
+  sudo sed -i \
+  -e '/^\s*#/d' \
+  -e '/gitpod/d' \
+  -e '/PIP_USER/d' \
+  -e '/nvim/d' \
+  -e '/local/d' \
+  -e '/starship/d' \
+  -e '/^\s*$/d' \
+  /etc/bash.bashrc \
+  && ( \
+  echo "export EDITOR=\"${EDITOR}\"" ; \
+  echo "export VISUAL=\"${VISUAL}\"" ; \
+  echo "export PIP_USER=\"${PIP_USER}\"" ; \
+  echo 'export PATH="${PATH}:/usr/local/bin"' ; \
+  echo "[ -d ${HOME}/.cargo/bin ] && export PATH=\"\${PATH}:${HOME}/.cargo/bin\";"; \
+  echo "[ -d ${HOME}/.pyenv/bin ] && export PATH=\"\${PATH}:${HOME}/.pyenv/bin\";"; \
+  echo "[ -d ${HOME}/.pyenv/shims ] && export PATH=\"\${PATH}:${HOME}/.pyenv/shims\";"; \
+  echo "[ -d ${HOME}/go ] && export GOROOT=\"${HOME}/go\";"; \
+  echo "[ -d ${HOME}/go ] && export GOPATH=\"${HOME}/go-packages\";"; \
+  echo "[ -d ${HOME}/go ] && export PATH=\"\${PATH}:\${GOROOT}/bin:\${GOPATH}/bin\";"; \
+  echo 'eval "$(starship init bash)";' ; \
+  echo "alias dip='docker inspect --format \"{{ .NetworkSettings.Networks.nat.IPAddress }}\"'" ; \
+  echo "alias drm='docker container rm -f \"$(docker container ls -aq)\"'" ; \
+  ) | sudo tee -a /etc/bash.bashrc > /dev/null ;
+COPY "./.SpaceVim.d" "${HOME}/.SpaceVim.d"
 RUN \
   curl -sLf https://spacevim.org/install.sh | bash \
-  && timeout 120 nvim \
-  --headless +"call dein#install#_update([], 'update', 0)" +qall \
-  && timeout 120 nvim \
-  --headless +"call dein#add('Shougo/vimproc.vim', {'build': 'make'})" +qall  \
-  && timeout 120 nvim --headless +VimProcInstall +qall \
-COPY "./.SpaceVim.d" "${HOME}/.SpaceVim.d"
-RUN  timeout 120 nvim --headless +'call dein#install()' +qall || true
+  && timeout 200 \
+    nvim --headless \
+    +VimProcInstall \
+    +'call dein#install()'  \
+    +UpdateRemotePlugins  \
+    +qall || true ;
 COPY --from=fjolsvin/just:latest /workspace /usr/local/bin
 COPY --from=fjolsvin/convco:latest /workspace /usr/local/bin
 COPY --from=fjolsvin/clog:latest /workspace /usr/local/bin
