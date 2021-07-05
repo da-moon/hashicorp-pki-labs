@@ -1,0 +1,11 @@
+[consul]
+consul-server-1
+consul-server-2
+consul-server-3
+[vault]
+vault-1
+vault-2
+vault-3
+[staging:children]
+consul
+vault
