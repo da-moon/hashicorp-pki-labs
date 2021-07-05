@@ -8,7 +8,6 @@ include contrib/make/targets/git/git.mk
 THIS_FILE := $(firstword $(MAKEFILE_LIST))
 SELF_DIR := $(dir $(THIS_FILE))
 PLAYBOOKS_TARGETS=$(notdir $(patsubst %/,%,$(dir $(wildcard ./contrib/playbooks/*/Makefile))))
-LABS_TARGETS=$(notdir $(patsubst %/,%,$(dir $(wildcard ./labs/*/Makefile))))
 .PHONY: playbooks
 .SILENT: playbooks
 playbooks:
@@ -21,6 +20,14 @@ playbooks:
 $(PLAYBOOKS_TARGETS):
 	- $(call print_running_target)
 	- @$(MAKE) --no-print-directory -C contrib/playbooks/$(@)/ $(@)
+	- $(call print_completed_target)
+
+LABS_TARGETS=$(notdir $(patsubst %/,%,$(dir $(wildcard ./labs/*/Makefile))))
+.PHONY: $(PLAYBOOKS_TARGETS)
+.SILENT: $(PLAYBOOKS_TARGETS)
+$(LABS_TARGETS):
+	- $(call print_running_target)
+	- @$(MAKE) --no-print-directory -C labs/$(@)/ $(@)
 	- $(call print_completed_target)
 
 .PHONY: playbooks-info
