@@ -56,7 +56,6 @@ USER gitpod
 ENV EDITOR="nvim"
 ENV VISUAL="nvim"
 ENV PIP_USER="nvim"
-ENV HOME="/home/${USER}"
 RUN \
   sudo sed -i \
   -e '/^\s*#/d' \
@@ -85,7 +84,7 @@ RUN \
 COPY "./.SpaceVim.d" "${HOME}/.SpaceVim.d"
 RUN \
   curl -sLf https://spacevim.org/install.sh | bash \
-  && timeout 200 \
+  && timeout 150 \
     nvim --headless \
     +VimProcInstall \
     +'call dein#install()'  \
