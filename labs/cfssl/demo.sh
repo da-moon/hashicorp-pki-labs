@@ -117,3 +117,10 @@ function section(){
   echo >&2 ""
 }
 echo >&2 ""
+message="making sure all terraform modules are initialized"
+command="terraform init"
+section --message "$message" --command "$command"
+
+message="using terraform to ${green}create${reset} ${bold}pki secret engine${reset}"
+command="terraform apply -auto-approve"
+section --message "$message" --command "$command"
