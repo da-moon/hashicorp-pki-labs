@@ -21,10 +21,11 @@ ports:
   - port: 8080
     onOpen: ignore
     visibility: public
-  # [ NOTE ] => for dropbear
+# [ NOTE ] => for dropbear
   - port: 2222
     onOpen: ignore
     visibility: public
 vscode:
   extensions:
     - ms-azuretools.vscode-docker@1.8.1:xuHtLS23Q5czFwYH7grcCQ==
+    - hashicorp.terraform

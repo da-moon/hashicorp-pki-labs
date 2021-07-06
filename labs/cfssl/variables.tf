@@ -20,6 +20,14 @@ variable "host_port" {
   type    = number
   default = 8888
 }
+variable "cfssl_data_dir" {
+  type    = string
+  default = "/var/cfssl"
+}
+variable "cfssl_config_dir" {
+  type    = string
+  default = "/etc/cfssl"
+}
 variable "ca_common_name" {
   type        = string
   default     = "acme.com"
@@ -39,4 +47,9 @@ variable "ca_ttl" {
   description = "ttl and max ttl of root ca. Defaults to 10 years"
   default     = "315360000"
   type        = string
+}
+variable "cert_ttl" {
+  description = "default ttl of generated certificates. Defaults to 30 days"
+  default     = 2592000
+  type        = number
 }

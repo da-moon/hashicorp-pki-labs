@@ -117,10 +117,10 @@ function section(){
   echo >&2 ""
 }
 echo >&2 ""
-message="making sure all terraform modules are initialized"
-command="terraform init"
-section --message "$message" --command "$command"
 
 message="using terraform to ${green}create${reset} ${bold}pki secret engine${reset}"
 command="terraform apply -auto-approve"
 section --message "$message" --command "$command"
+
+export CFSSL_HOST="http://localhost:8888"
+curl -d '{"profile":"default", "request": {"hosts":["localhost,127.0.0.1,vault-1,vault-1.local,vault-2,vault-2.local,vault-3,vault-3.local,consul-server-1,consul-server-1.local,consul-server-2,consul-server-2.local,consul-server-3,consul-server-3.local"]} }' ${CFSSL_HOST}/api/v1/cfssl/newcert | jq -r

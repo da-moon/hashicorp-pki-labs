@@ -21,9 +21,16 @@ ifneq ($(DELAY),)
 	- sleep $(DELAY)
 endif
 	- $(call print_completed_target)
+.PHONY: init
+.SILENT: init
+init : clean
+	- $(call print_running_target)
+	terraform init
+	- $(call print_completed_target)
+
 .PHONY: $(PROJECT_NAME)
 .SILENT: $(PROJECT_NAME)
-$(PROJECT_NAME): clean
+$(PROJECT_NAME): init
 	- $(call print_running_target)
 	- $(eval command=bash demo.sh)
 	- @$(MAKE) --no-print-directory \
